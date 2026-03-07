@@ -6,9 +6,12 @@ ROOT_DIR="$(pwd)"
 BUILD_DIR="$ROOT_DIR/chromium"
 bun_dir="out/Default"
 
-export PATH="/opt/depot_tools:$PATH"
 export DEPOT_TOOLS_UPDATE=1
 export GCLIENT_SUPPRESS_GIT_VERSION_WARNING=1
+
+git config --global user.email "rducks@duck.com"
+git config --global user.name "rovars"
+git config --global --add safe.directory "*"
 
 if [ -z "$RBE_API_KEY" ]; then
     echo "ERROR: RBE_API_KEY not set."
