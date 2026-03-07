@@ -80,15 +80,11 @@ sed -i "s/trichrome_certdigest = .*/trichrome_certdigest = \"$CERT_DIGEST\"/" "o
 sed -i "s/config_apk_certdigest = .*/config_apk_certdigest = \"$CERT_DIGEST\"/" "out/Release/args.gn"
 
 echo "use_remoteexec = true" >> "out/Release/args.gn"
-echo "symbol_level=0" >> "out/Release/args.gn"
-echo "blink_symbol_level=0" >> "out/Release/args.gn"
-echo "v8_symbol_level=0" >> "out/Release/args.gn"
-echo "optimize_for_size=true" >> "out/Release/args.gn"
-echo "dcheck_always_on=false" >> "out/Release/args.gn"
-echo "enable_iterator_debugging=false" >> "out/Release/args.gn"
-echo "exclude_unwind_tables=true" >> "out/Release/args.gn"
+echo 'symbol_level = "0"' >> "out/Release/args.gn"
+echo 'blink_symbol_level = "0"' >> "out/Release/args.gn"
+echo 'v8_symbol_level = "0"' >> "out/Release/args.gn"
 
-gn gen out
+gn gen out/Release
 
 chrt -b 0 autoninja -C out chrome_public_apk
 
