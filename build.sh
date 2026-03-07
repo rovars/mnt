@@ -2,43 +2,46 @@
 
 set -ex
 
-ROOT_DIR="$(pwd)"
-ROM_REPO_DIR="$ROOT_DIR/rom"
+ROOT_DIR="/home/chromium"
+BUILD_DIR="$ROOT_DIR/chromium"
+bun_dir="out/Default"
 
-cat > "$ROOT_DIR/siso_helper.sh" << 'EOF'
-#!/bin/bash
-cat << HELPER
-{
-  "headers": {
-    "x-buildbuddy-api-key": ["${RBE_API_KEY}"]
-  },
-  "token": "dummy"
-}
-HELPER
-EOF
-chmod +x "$ROOT_DIR/siso_helper.sh"
+export PATH="/opt/depot_tools:$PATH"
+export DEPOT_TOOLS_UPDATE=1
+export GCLIENT_SUPPRESS_GIT_VERSION_WARNING=1
 
 if [ -z "$RBE_API_KEY" ]; then
-  echo "ERROR: RBE_API_KEY not set. Please export it in your environment."
-  exit 1
+    echo "ERROR: RBE_API_KEY not set."
+    exit 1
 fi
+
+cat > "$ROOT_DIR/siso_helper.sh" << EOF
+#!/bin/bash
+echo '{"headers": {"x-buildbuddy-api-key": ["$RBE_API_KEY"]}, "token": "dummy"}'
+EOF
+chmod +x "$ROOT_DIR/siso_helper.sh"
 
 export SISO_PROFILER=1
 export SISO_CREDENTIAL_HELPER="$ROOT_DIR/siso_helper.sh"
 export SISO_FALLBACK=true
 export SISO_ARGS="-reapi_keep_exec_stream -fs_min_flush_timeout 300s"
 
-export DEPOT_TOOLS_UPDATE=1
-export GCLIENT_SUPPRESS_GIT_VERSION_WARNING=1
-export PATH="$ROOT_DIR/depot_tools:$PATH"
-
-git clone -q --depth=1 https://chromium.googlesource.com/chromium/tools/depot_tools.git "$ROOT_DIR/depot_tools"
-
 VANADIUM_TAG=$(git ls-remote --tags --sort="v:refname" https://github.com/GrapheneOS/Vanadium.git | tail -n1 | sed 's/.*\///; s/\^{}//')
-git clone -q --depth=1 https://github.com/GrapheneOS/Vanadium.git -b "$VANADIUM_TAG" "$ROOT_DIR/Vanadium"
-cd "$ROOT_DIR/Vanadium"
+CHROMIUM_VERSION=$(echo "$VANADIUM_TAG" | cut -d'.' -f1-4)
 
-cat > .gclient << EOF
+mkdir -p "$BUILD_DIR" && cd "$BUILD_DIR"
+
+if [ ! -d "src" ]; then
+    fetch --nohooks --no-history android
+fi
+
+cd src
+sudo ./build/install-build-deps.sh --android --no-prompt
+
+git fetch --depth=1 origin "refs/tags/$CHROMIUM_VERSION:refs/tags/$CHROMIUM_VERSION"
+git checkout "$CHROMIUM_VERSION"
+
+cat > ../.gclient << EOF
 solutions = [
   {
     "name": "src",
@@ -55,58 +58,39 @@ solutions = [
 target_os = ["android"]
 EOF
 
-gclient sync --nohooks --no-history
+[ -d "$ROOT_DIR/Vanadium_repo" ] && rm -rf "$ROOT_DIR/Vanadium_repo"
+git clone -q --depth=1 https://github.com/GrapheneOS/Vanadium.git -b "$VANADIUM_TAG" "$ROOT_DIR/Vanadium_repo"
 
-cd src
-CHROMIUM_VERSION=$(echo "$VANADIUM_TAG" | cut -d'.' -f1-4)
-git fetch --depth=1 origin "refs/tags/$CHROMIUM_VERSION:refs/tags/$CHROMIUM_VERSION"
-git checkout "$CHROMIUM_VERSION"
+git am --whitespace=nowarn --keep-non-patch "$ROOT_DIR/Vanadium_repo/patches/"*.patch
 
-gclient sync --nohooks --no-history -D -j 8
-git am --3way --whitespace=nowarn --keep-non-patch ../patches/*.patch
-gclient runhooks
+gclient sync -D --no-history --jobs 8
 
-SCRIPT_DIR="$ROM_REPO_DIR/script/chromium"
-if [ -f "$SCRIPT_DIR/rov.keystore" ]; then
-    CERT_DIGEST=$(keytool -export-cert -alias rov -keystore "$SCRIPT_DIR/rov.keystore" -storepass rovars | sha256sum | cut -d' ' -f1)
-else
-    CERT_DIGEST="000000"
-fi
+mkdir -p "$bun_dir"
+cp "$ROOT_DIR/Vanadium_repo/args.gn" "$bun_dir/args.gn"
 
-mkdir -p out/Release
-cp ../args.gn out/Release/args.gn
+CERT_DIGEST="c6adb8b83c6d4c17d292afde56fd488a51d316ff8f2c11c5410223bff8a7dbb3"
 
-sed -i "s/trichrome_certdigest = .*/trichrome_certdigest = \"$CERT_DIGEST\"/" "out/Release/args.gn"
-sed -i "s/config_apk_certdigest = .*/config_apk_certdigest = \"$CERT_DIGEST\"/" "out/Release/args.gn"
+sed -i "s/trichrome_certdigest = .*/trichrome_certdigest = \"$CERT_DIGEST\"/" "$bun_dir/args.gn"
+sed -i "s/config_apk_certdigest = .*/config_apk_certdigest = \"$CERT_DIGEST\"/" "$bun_dir/args.gn"
 
-echo "use_remoteexec = true" >> "out/Release/args.gn"
-echo 'symbol_level = "0"' >> "out/Release/args.gn"
-echo 'blink_symbol_level = "0"' >> "out/Release/args.gn"
-echo 'v8_symbol_level = "0"' >> "out/Release/args.gn"
+{
+    echo "use_remoteexec = true"
+    echo "symbol_level = 0"
+    echo "blink_symbol_level = 0"
+    echo "v8_symbol_level = 0"
+} >> "$bun_dir/args.gn"
 
-gn gen out/Release
+gn gen "$bun_dir"
 
-chrt -b 0 autoninja -C out chrome_public_apk
+chrt -b 0 autoninja -C "$bun_dir" chrome_public_apk
 
 mkdir -p ~/.config
-[ -f "$ROM_REPO_DIR/config.zip" ] && unzip -q "$ROM_REPO_DIR/config.zip" -d ~/.config
-
-cd out/Release/apks
-APKSIGNER=$(find ../../../third_party/android_sdk/public/build-tools -name apksigner -type f | head -n 1)
-
-if [ -f "$SCRIPT_DIR/rov.keystore" ]; then
-    for apk in ChromePublic.apk; do
-        if [ -f "$apk" ]; then
-            "$APKSIGNER" sign --ks "$SCRIPT_DIR/rov.keystore" --ks-pass pass:rovars --ks-key-alias rov --in "$apk" --out "Signed-$apk"
-        fi
-    done
-    ARCHIVE_CONTENT="Signed-*.apk"
-else
-    ARCHIVE_CONTENT="*.apk"
-fi
+[ -d "$ROOT_DIR/rom" ] && [ -f "$ROOT_DIR/rom/config.zip" ] && unzip -q "$ROOT_DIR/rom/config.zip" -d ~/.config
 
 ARCHIVE_FILE="Vanadium-${VANADIUM_TAG}-arm64-$(date +%Y%m%d).tar.gz"
-tar -czf "$ROOT_DIR/$ARCHIVE_FILE" $ARCHIVE_CONTENT
+tar -czf "$ROOT_DIR/$ARCHIVE_FILE" -C "$bun_dir/apks" ChromePublic.apk
 
 cd "$ROOT_DIR"
-timeout 15m telegram-upload "$ARCHIVE_FILE" --to "$TG_CHAT_ID"
+if command -v telegram-upload &> /dev/null && [ -n "$TG_CHAT_ID" ]; then
+    timeout 15m telegram-upload "$ARCHIVE_FILE" --to "$TG_CHAT_ID"
+fi

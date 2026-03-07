@@ -8,14 +8,13 @@ task:
   name: "Build Vanadium"
   timeout_in: 120m
   container:
-    image: ghcr.io/rovars/docker:chromium
+    image: ghcr.io/rovars/docker:chrome
     cpu: 8
     memory: 32G
     greedy: true
 
   build_script:
     - rm -rf .git
-    - /opt/cirrus_env --started
     - git clone -q https://rovars:${GITHUB_TOKEN}@github.com/rovars/rom rom
     - chmod +x build.sh
     - ./build.sh
