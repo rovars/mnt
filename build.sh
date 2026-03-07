@@ -2,7 +2,7 @@
 
 set -ex
 
-ROOT_DIR="/home/chromium"
+ROOT_DIR="$(pwd)"
 BUILD_DIR="$ROOT_DIR/chromium"
 bun_dir="out/Default"
 
@@ -36,7 +36,7 @@ if [ ! -d "src" ]; then
 fi
 
 cd src
-sudo ./build/install-build-deps.sh --android --no-prompt
+./build/install-build-deps.sh --android --no-prompt
 
 git fetch --depth=1 origin "refs/tags/$CHROMIUM_VERSION:refs/tags/$CHROMIUM_VERSION"
 git checkout "$CHROMIUM_VERSION"
@@ -68,7 +68,12 @@ gclient sync -D --no-history --jobs 8
 mkdir -p "$bun_dir"
 cp "$ROOT_DIR/Vanadium_repo/args.gn" "$bun_dir/args.gn"
 
-CERT_DIGEST="c6adb8b83c6d4c17d292afde56fd488a51d316ff8f2c11c5410223bff8a7dbb3"
+KEYSTORE="$ROOT_DIR/rom/script/rov.keystore"
+if [ -f "$KEYSTORE" ]; then
+    CERT_DIGEST=$(keytool -export-cert -alias rov -keystore "$KEYSTORE" -storepass rovars | sha256sum | cut -d' ' -f1)
+else
+    CERT_DIGEST="c6adb8b83c6d4c17d292afde56fd488a51d316ff8f2c11c5410223bff8a7dbb3"
+fi
 
 sed -i "s/trichrome_certdigest = .*/trichrome_certdigest = \"$CERT_DIGEST\"/" "$bun_dir/args.gn"
 sed -i "s/config_apk_certdigest = .*/config_apk_certdigest = \"$CERT_DIGEST\"/" "$bun_dir/args.gn"
@@ -87,10 +92,22 @@ chrt -b 0 autoninja -C "$bun_dir" chrome_public_apk
 mkdir -p ~/.config
 [ -d "$ROOT_DIR/rom" ] && [ -f "$ROOT_DIR/rom/config.zip" ] && unzip -q "$ROOT_DIR/rom/config.zip" -d ~/.config
 
+cd "$bun_dir/apks"
+APKSIGNER=$(find ../../../third_party/android_sdk/public/build-tools -name apksigner -type f | head -n 1)
+if [ -f "$KEYSTORE" ]; then
+    for apk in ChromePublic.apk; do
+        [ -f "$apk" ] && "$APKSIGNER" sign --ks "$KEYSTORE" --ks-pass pass:rovars --ks-key-alias rov --in "$apk" --out "Signed-$apk"
+    done
+    ARCHIVE_CONTENT="Signed-*.apk"
+else
+    ARCHIVE_CONTENT="*.apk"
+fi
+
 ARCHIVE_FILE="Vanadium-${VANADIUM_TAG}-arm64-$(date +%Y%m%d).tar.gz"
-tar -czf "$ROOT_DIR/$ARCHIVE_FILE" -C "$bun_dir/apks" ChromePublic.apk
+tar -czf "$ROOT_DIR/$ARCHIVE_FILE" $ARCHIVE_CONTENT
 
 cd "$ROOT_DIR"
 if command -v telegram-upload &> /dev/null && [ -n "$TG_CHAT_ID" ]; then
+    export PARALLEL_UPLOAD_BLOCKS=2
     timeout 15m telegram-upload "$ARCHIVE_FILE" --to "$TG_CHAT_ID"
 fi

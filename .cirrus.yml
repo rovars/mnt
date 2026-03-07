@@ -15,6 +15,6 @@ task:
 
   build_script:
     - rm -rf .git
+    - rovx --start
     - git clone -q https://rovars:${GITHUB_TOKEN}@github.com/rovars/rom rom
-    - chmod +x build.sh
     - ./build.sh
