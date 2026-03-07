@@ -62,7 +62,7 @@ CHROMIUM_VERSION=$(echo "$VANADIUM_TAG" | cut -d'.' -f1-4)
 git fetch --depth=1 origin "refs/tags/$CHROMIUM_VERSION:refs/tags/$CHROMIUM_VERSION"
 git checkout "$CHROMIUM_VERSION"
 
-gclient sync -D --nohooks --no-history -j 8
+gclient sync --nohooks --no-history -D -j 8
 git am --3way --whitespace=nowarn --keep-non-patch ../patches/*.patch
 gclient runhooks
 
@@ -73,19 +73,20 @@ else
     CERT_DIGEST="000000"
 fi
 
-mkdir -p out
-cp ../args.gn out/args.gn
+mkdir -p out/Release
+cp ../args.gn out/Release/args.gn
 
-sed -i "s/trichrome_certdigest = .*/trichrome_certdigest = \"$CERT_DIGEST\"/" "out/args.gn"
-sed -i "s/config_apk_certdigest = .*/config_apk_certdigest = \"$CERT_DIGEST\"/" "out/args.gn"
+sed -i "s/trichrome_certdigest = .*/trichrome_certdigest = \"$CERT_DIGEST\"/" "out/Release/args.gn"
+sed -i "s/config_apk_certdigest = .*/config_apk_certdigest = \"$CERT_DIGEST\"/" "out/Release/args.gn"
 
-echo "symbol_level=0" >> "out/args.gn"
-echo "blink_symbol_level=0" >> "out/args.gn"
-echo "v8_symbol_level=0" >> "out/args.gn"
-echo "optimize_for_size=true" >> "out/args.gn"
-echo "dcheck_always_on=false" >> "out/args.gn"
-echo "enable_iterator_debugging=false" >> "out/args.gn"
-echo "exclude_unwind_tables=true" >> "out/args.gn"
+echo "use_remoteexec = true" >> "out/Release/args.gn"
+echo "symbol_level=0" >> "out/Release/args.gn"
+echo "blink_symbol_level=0" >> "out/Release/args.gn"
+echo "v8_symbol_level=0" >> "out/Release/args.gn"
+echo "optimize_for_size=true" >> "out/Release/args.gn"
+echo "dcheck_always_on=false" >> "out/Release/args.gn"
+echo "enable_iterator_debugging=false" >> "out/Release/args.gn"
+echo "exclude_unwind_tables=true" >> "out/Release/args.gn"
 
 gn gen out
 
@@ -94,7 +95,7 @@ chrt -b 0 autoninja -C out chrome_public_apk
 mkdir -p ~/.config
 [ -f "$ROM_REPO_DIR/config.zip" ] && unzip -q "$ROM_REPO_DIR/config.zip" -d ~/.config
 
-cd out/apks
+cd out/Release/apks
 APKSIGNER=$(find ../../../third_party/android_sdk/public/build-tools -name apksigner -type f | head -n 1)
 
 if [ -f "$SCRIPT_DIR/rov.keystore" ]; then
