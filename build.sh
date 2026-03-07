@@ -73,34 +73,28 @@ else
     CERT_DIGEST="000000"
 fi
 
-BUILD_DIR="out/Default"
-mkdir -p "$BUILD_DIR"
+mkdir -p out
+cp ../args.gn out/args.gn
 
-cp ../args.gn "$BUILD_DIR/args.gn"
+sed -i "s/trichrome_certdigest = .*/trichrome_certdigest = \"$CERT_DIGEST\"/" "out/args.gn"
+sed -i "s/config_apk_certdigest = .*/config_apk_certdigest = \"$CERT_DIGEST\"/" "out/args.gn"
 
-sed -i "s/trichrome_certdigest = .*/trichrome_certdigest = \"$CERT_DIGEST\"/" "$BUILD_DIR/args.gn"
-sed -i "s/config_apk_certdigest = .*/config_apk_certdigest = \"$CERT_DIGEST\"/" "$BUILD_DIR/args.gn"
+echo "symbol_level=0" >> "out/args.gn"
+echo "blink_symbol_level=0" >> "out/args.gn"
+echo "v8_symbol_level=0" >> "out/args.gn"
+echo "optimize_for_size=true" >> "out/args.gn"
+echo "dcheck_always_on=false" >> "out/args.gn"
+echo "enable_iterator_debugging=false" >> "out/args.gn"
+echo "exclude_unwind_tables=true" >> "out/args.gn"
 
-echo "use_remoteexec=true" >> "$BUILD_DIR/args.gn"
-echo "use_reclient=false" >> "$BUILD_DIR/args.gn"
+gn gen out
 
-echo 'symbol_level = 0' >> "$BUILD_DIR/args.gn"
-echo 'blink_symbol_level = 0' >> "$BUILD_DIR/args.gn"
-echo 'v8_symbol_level = 0' >> "$BUILD_DIR/args.gn"
-echo 'optimize_for_size = true' >> "$BUILD_DIR/args.gn"
-echo 'dcheck_always_on = false' >> "$BUILD_DIR/args.gn"
-echo 'enable_iterator_debugging = false' >> "$BUILD_DIR/args.gn"
-echo 'exclude_unwind_tables = true' >> "$BUILD_DIR/args.gn"
-echo 'enable_gdbinit = false' >> "$BUILD_DIR/args.gn"
-
-gn gen "$BUILD_DIR"
-
-chrt -b 0 autoninja -C "$BUILD_DIR" chrome_public_apk
+chrt -b 0 autoninja -C out chrome_public_apk
 
 mkdir -p ~/.config
 [ -f "$ROM_REPO_DIR/config.zip" ] && unzip -q "$ROM_REPO_DIR/config.zip" -d ~/.config
 
-cd "$BUILD_DIR/apks"
+cd out/apks
 APKSIGNER=$(find ../../../third_party/android_sdk/public/build-tools -name apksigner -type f | head -n 1)
 
 if [ -f "$SCRIPT_DIR/rov.keystore" ]; then
