@@ -43,12 +43,10 @@ sed -i "s/config_apk_certdigest = .*/config_apk_certdigest = \"$CERT_DIGEST\"/" 
 {
     echo "blink_symbol_level = \"0\""
     echo "v8_symbol_level = \"0\""
-    echo "use_thin_lto = false"
-    echo "concurrent_links = \"1\""
 } >> "$bun_dir/args.gn"
 
 gn gen "$bun_dir"
-autoninja -C "$bun_dir" chrome_public_apk || { rovx --post "Build failed!"; exit 1; }
+autoninja -j 4 -C "$bun_dir" chrome_public_apk || { rovx --post "Build failed!"; exit 1; }
 
 mkdir -p ~/.config
 [ -f "$ROOT_DIR/rom/config.zip" ] && unzip -q "$ROOT_DIR/rom/config.zip" -d ~/.config
