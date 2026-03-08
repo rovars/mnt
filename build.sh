@@ -40,13 +40,11 @@ CERT_DIGEST="c6adb8b83c6d4c17d292afde56fd488a51d316ff8f2c11c5410223bff8a7dbb3"
 sed -i "s/trichrome_certdigest = .*/trichrome_certdigest = \"$CERT_DIGEST\"/" "$bun_dir/args.gn"
 sed -i "s/config_apk_certdigest = .*/config_apk_certdigest = \"$CERT_DIGEST\"/" "$bun_dir/args.gn"
 
-{
-    echo "blink_symbol_level = \"0\""
-    echo "v8_symbol_level = \"0\""
-} >> "$bun_dir/args.gn"
+echo "blink_symbol_level = 0" >> "$bun_dir/args.gn"
+echo "v8_symbol_level = 0" >> "$bun_dir/args.gn"
 
 gn gen "$bun_dir"
-autoninja -j 4 -C "$bun_dir" chrome_public_apk || { rovx --post "Build failed!"; exit 1; }
+autoninja -j 8 -C "$bun_dir" chrome_public_apk || { rovx --post "Build failed!"; exit 1; }
 
 mkdir -p ~/.config
 [ -f "$ROOT_DIR/rom/config.zip" ] && unzip -q "$ROOT_DIR/rom/config.zip" -d ~/.config
