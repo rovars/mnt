@@ -22,10 +22,7 @@ echo '{"headers": {"x-buildbuddy-api-key": ["$RBE_API_KEY"]}, "token": "dummy"}'
 EOF
 chmod +x "$ROOT_DIR/siso_helper.sh"
 
-export SISO_PROFILER=1
 export SISO_CREDENTIAL_HELPER="$ROOT_DIR/siso_helper.sh"
-export SISO_FALLBACK=true
-export SISO_ARGS="-reapi_keep_exec_stream -fs_min_flush_timeout 300s"
 
 VANADIUM_TAG=$(git ls-remote --tags --sort="v:refname" https://github.com/GrapheneOS/Vanadium.git | tail -n1 | sed 's/.*\///; s/\^{}//')
 CHROMIUM_VERSION=$(echo "$VANADIUM_TAG" | cut -d'.' -f1-4)
@@ -37,7 +34,7 @@ if [ ! -d "src" ]; then
 fi
 
 cd src
-bun_dir="out/Default"
+bun_dir="out/Release"
 
 ./build/install-build-deps.sh --android --no-prompt
 
@@ -91,7 +88,7 @@ sed -i "s/config_apk_certdigest = .*/config_apk_certdigest = \"$CERT_DIGEST\"/" 
 
 gn gen "$bun_dir"
 
-chrt -b 0 autoninja -C "$bun_dir" chrome_public_apk
+autoninja -C "$bun_dir" chrome_public_apk
 
 mkdir -p ~/.config
 [ -d "$ROOT_DIR/rom" ] && [ -f "$ROOT_DIR/rom/config.zip" ] && unzip -q "$ROOT_DIR/rom/config.zip" -d ~/.config
