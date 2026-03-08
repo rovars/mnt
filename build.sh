@@ -3,7 +3,6 @@
 set -ex
 
 ROOT_DIR="$(pwd)"
-bun_dir="$ROOT_DIR/out/Default"
 
 export DEPOT_TOOLS_UPDATE=1
 export GCLIENT_SUPPRESS_GIT_VERSION_WARNING=1
@@ -38,6 +37,8 @@ if [ ! -d "src" ]; then
 fi
 
 cd src
+bun_dir="out/Default"
+
 ./build/install-build-deps.sh --android --no-prompt
 
 git fetch --depth=1 origin "refs/tags/$CHROMIUM_VERSION:refs/tags/$CHROMIUM_VERSION"
