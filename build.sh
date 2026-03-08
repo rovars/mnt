@@ -3,8 +3,7 @@
 set -ex
 
 ROOT_DIR="$(pwd)"
-BUILD_DIR="$ROOT_DIR/chromium"
-bun_dir="out/Default"
+bun_dir="$ROOT_DIR/out/Default"
 
 export DEPOT_TOOLS_UPDATE=1
 export GCLIENT_SUPPRESS_GIT_VERSION_WARNING=1
@@ -32,7 +31,7 @@ export SISO_ARGS="-reapi_keep_exec_stream -fs_min_flush_timeout 300s"
 VANADIUM_TAG=$(git ls-remote --tags --sort="v:refname" https://github.com/GrapheneOS/Vanadium.git | tail -n1 | sed 's/.*\///; s/\^{}//')
 CHROMIUM_VERSION=$(echo "$VANADIUM_TAG" | cut -d'.' -f1-4)
 
-mkdir -p "$BUILD_DIR" && cd "$BUILD_DIR"
+mkdir -p chromium && cd chromium
 
 if [ ! -d "src" ]; then
     fetch --nohooks --no-history android
@@ -68,6 +67,7 @@ git am --whitespace=nowarn --keep-non-patch "$ROOT_DIR/Vanadium_repo/patches/"*.
 
 gclient sync -D --no-history --jobs 8
 
+rm -rf "$bun_dir"
 mkdir -p "$bun_dir"
 cp "$ROOT_DIR/Vanadium_repo/args.gn" "$bun_dir/args.gn"
 
