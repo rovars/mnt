@@ -43,6 +43,7 @@ sed -i "s/config_apk_certdigest = .*/config_apk_certdigest = \"$CERT_DIGEST\"/" 
 {
     echo "blink_symbol_level = \"0\""
     echo "v8_symbol_level = \"0\""
+    echo "use_thin_lto = false"
     echo "concurrent_links = \"1\""
 } >> "$bun_dir/args.gn"
 
