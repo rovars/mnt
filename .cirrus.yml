@@ -5,9 +5,7 @@ env:
   GITHUB_TOKEN: "ENCRYPTED[!55a825eae5c6b48595000403feb93a1e434b2f6de64ff689cfc8df0079370cfd777f7a3f304e78ec524fd06e2d3e3ac5!]"
   gitconfigs: "ENCRYPTED[!e918d9400219b6f7d2588a0afd4fffd3df3735cf5db059e2733e4269c363811a818e686e7b04c2b4fd671580e393f20c!]"
   credensial: "ENCRYPTED[!6f130d1ac4acaf8c4a50f4ce8c5a9cefe2ad5e2fd511e0d25c3ca5d15f6f15977184c846ce5cee54bb6019a060648fed!]"
-  RCLONE_DATA: "ENCRYPTED[!0f1e0f5829795533e75b98015a4647570df2d56d57903d08d7efb1782449648aaa506a63e0b3388fa70dc29d507c84ae!]"
-  CCACHE_ARCHIVE: "vanadium.tar.gz"
-  RCLONE_REMOTE: "me:rom"
+  
  
 task:
   name: "Build Vanadium"
@@ -21,8 +19,6 @@ task:
   setup_script:
     - echo "$credensial" > ~/.git-credentials
     - echo "$gitconfigs" > ~/.gitconfig
-    - mkdir -p ~/.config/rclone
-    - echo "$RCLONE_DATA" > ~/.config/rclone/rclone.conf
     - rm -rf .git
     - rovx --start
     - git clone -q https://rovars:${GITHUB_TOKEN}@github.com/rovars/rom rom
