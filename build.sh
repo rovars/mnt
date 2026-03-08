@@ -7,6 +7,9 @@ git config --global user.email "rducks@duck.com"
 git config --global user.name "rovars"
 git config --global --add safe.directory "*"
 
+export CCACHE_BASEDIR="$ROOT_DIR"
+export CCACHE_SLOPPINESS=include_file_mtime
+
 source rovx --ccache
 rovx --post "Build Vanadium started..."
 
@@ -17,7 +20,7 @@ mkdir -p chromium && cd chromium
 [ ! -d "src" ] && fetch --nohooks --no-history android
 
 cd src
-bun_dir="out/Release"
+bun_dir="out/Default"
 ./build/install-build-deps.sh --android --no-prompt
 git fetch --depth=1 origin "refs/tags/$CHROMIUM_VERSION:refs/tags/$CHROMIUM_VERSION"
 git checkout "$CHROMIUM_VERSION"
@@ -38,11 +41,8 @@ sed -i "s/trichrome_certdigest = .*/trichrome_certdigest = \"$CERT_DIGEST\"/" "$
 sed -i "s/config_apk_certdigest = .*/config_apk_certdigest = \"$CERT_DIGEST\"/" "$bun_dir/args.gn"
 
 {
-    echo "symbol_level = 0"
-    echo "blink_symbol_level = 0"
-    echo "v8_symbol_level = 0"
-    echo "ccache_prefix = \"ccache\""
-    echo "concurrent_links = 1"
+    echo "blink_symbol_level = \"0\""
+    echo "v8_symbol_level = \"0\""
 } >> "$bun_dir/args.gn"
 
 gn gen "$bun_dir"
