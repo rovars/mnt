@@ -93,11 +93,9 @@ build_src() {
     sed -i "s/trichrome_certdigest = .*/trichrome_certdigest = \"$CERT_DIGEST\"/" out/Default/args.gn
     sed -i "s/config_apk_certdigest = .*/config_apk_certdigest = \"$CERT_DIGEST\"/" out/Default/args.gn
     sed -i "s/symbol_level = .*/symbol_level = 0/" out/Default/args.gn
-    sed -i "s/target_cpu = .*/target_cpu = \"arm\"/" out/Default/args.gn
     
     cat <<EOF >> out/Default/args.gn
 is_high_end_android = false
-dcheck_always_on = false
 blink_symbol_level = 0
 v8_symbol_level = 0
 use_remoteexec = true
