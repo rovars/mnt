@@ -1,37 +1,34 @@
 env:
-  gitconfigs: "ENCRYPTED[!e918d9400219b6f7d2588a0afd4fffd3df3735cf5db059e2733e4269c363811a818e686e7b04c2b4fd671580e393f20c!]"
-  credensial: "ENCRYPTED[!6f130d1ac4acaf8c4a50f4ce8c5a9cefe2ad5e2fd511e0d25c3ca5d15f6f15977184c846ce5cee54bb6019a060648fed!]"
   TG_TOKEN: "ENCRYPTED[!48df36a023301be77fca5928aee9d9aa41d168a17b49a1379dcdd2544d897abdd71244a71b29f810411fefc8404625d2!]"
   TG_CHAT_ID: "ENCRYPTED[!a12665bdcb530d0f6222ec4f353356c9819303c6a85209c78bd9c1f2d57b16912c9b96d60e567367846f2438f9f75967!]"
+  GIT_GITCONFIGS: "ENCRYPTED[!e918d9400219b6f7d2588a0afd4fffd3df3735cf5db059e2733e4269c363811a818e686e7b04c2b4fd671580e393f20c!]"
+  GIT_CREDENSIAL: "ENCRYPTED[!6f130d1ac4acaf8c4a50f4ce8c5a9cefe2ad5e2fd511e0d25c3ca5d15f6f15977184c846ce5cee54bb6019a060648fed!]"
+  RCLONE_DATA: "ENCRYPTED[!0f1e0f5829795533e75b98015a4647570df2d56d57903d08d7efb1782449648aaa506a63e0b3388fa70dc29d507c84ae!]"
+  RCLONE_REMOTE: "rov:x"
+  CCACHE_ARCHIVE: "lin-18.tar.gz"
+  NINJA_HIGHMEM_NUM_JOBS: "1"
   GITHUB_TOKEN: "ENCRYPTED[!b0f01121b81d5dfd094e994b9cb6266579f851809cbb3db38f906e561e7bf2824501e2176e76ed23e53312da3aef78f6!]"
-  RCLONE_CONFIG: "ENCRYPTED[!0f1e0f5829795533e75b98015a4647570df2d56d57903d08d7efb1782449648aaa506a63e0b3388fa70dc29d507c84ae!]"
-  RBE_API_KEY: "ENCRYPTED[!ca80700c0523da990eb691b1baacfdc8ca6f8161e784c595bfb715801ba5ad4a512a2ff1e27403f1c094fc920ec53c39!]"
-  RCLONE_REMOTE: "me:rom"
-  # CCACHE_ARCHIVE: "ccache-losr.tar.gz"
 
 task:
-  name: "Build ROM CI"
+  name: "Build CI"
   timeout_in: 120m
   container:
-    image: ghcr.io/rovars/docker:cirrus
+    image: ghcr.io/rovars/docker:rovx
     cpu: 8
     memory: 32G
     greedy: true
-
-  sync_script:
-    - echo "$credensial" > ~/.git-credentials
-    - echo "$gitconfigs" > ~/.gitconfig
-    - echo "$RCLONE_CONFIG" > ~/.rclone.conf
+  setup_script:
+    - echo "$GIT_CREDENSIAL" > ~/.git-credentials
+    - echo "$GIT_GITCONFIGS" > ~/.gitconfig
+    - mkdir -p ~/.config/rclone
+    - echo "$CIRRUS_RCLONE_DATA" > ~/.config/rclone/rclone.conf
     - rm -rf .git
-    - /opt/cirrus_env --started
-    - chmod +x build.sh
-    - ./build.sh --sync
-  
-  restore_cache_script: ./build.sh --restore
+    - rovx --start
+  restore_ccache_script: rovx --restore
+  resync_script: ./build.sh --sync
   build_script: ./build.sh --build
+  # save_ccache_script: rovx --save
   upload_script: ./build.sh --upload
-  save_cache_script: ./build.sh --save
-
   on_failure:
-    notiferror_script:
-      - if [ -f out/error.log ]; then /opt/cirrus_env tg_post "out/error.log" "Build failed! Check error logs."; else /opt/cirrus_env tg_post "Build failed! No error log found."; fi
+    notif_error_script:
+      - if [ -f out/error.log ]; then rovx --post "out/error.log" "Build failed! Check error logs."; else rovx --post "Build failed! No error log found."; fi

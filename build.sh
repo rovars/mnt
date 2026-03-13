@@ -1,127 +1,81 @@
-#!/bin/bash
-
-# Import automation features from Docker environment
-source /opt/cirrus_env
+#!/usr/bin/env bash
 
 setup_src() {
-    git clone -q https://github.com/rovars/rom xx
-
     repo init -u https://github.com/LineageOS/android.git -b lineage-18.1 --groups=all,-notdefault,-darwin,-mips --git-lfs --depth=1
+    git clone -q https://github.com/rovars/rom "$PWD/rox"
+    mkdir -p "$PWD/.repo/local_manifests/"
+    cp -r "$PWD/rox/script/device.xml" "$PWD/.repo/local_manifests/"
 
-    git clone -q https://codeberg.org/lin18-microG/local_manifests -b lineage-18.1 .repo/local_manifests
+    repo sync -j8 -c --no-clone-bundle --no-tags
 
-    rm -rf .repo/local_manifests/setup*
-    mv xx/script/device.xml .repo/local_manifests/
+    # patch -p1 < "$PWD/rox/script/sepolicy.patch"
+    patch -p1 < "$PWD/rox/script/core.patch"
+    source "$PWD/rox/script/constify.sh"
 
-    run_retry repo sync -j8 -c --no-clone-bundle --no-tags
+    git clone https://github.com/bimuafaq/android_vendor_extra vendor/extra
 
-    rm -rf external/AOSmium-prebuilt 
-    rm -rf external/hardened_malloc
-    rm -rf prebuilts/AuroraStore
-    rm -rf prebuilts/prebuiltapks
-    rm -rf packages/overlays/CaptivePortal204
-
-    rm -rf external/chromium-webview
-    git clone -q https://github.com/LineageOS/android_external_chromium-webview external/chromium-webview -b master --depth=1
-
-    rm -rf lineage-sdk
-    git clone https://github.com/bimuafaq/android_lineage-sdk lineage-sdk -b lineage-18.1 --depth=1
-
-    rm -rf build/make
-    git clone https://github.com/bimuafaq/android_build_make build/make -b lineage-18.1 --depth=1
-
-    rm -rf system/core
-    git clone https://github.com/bimuafaq/android_system_core system/core -b lineage-18.1 --depth=1
-
-    rm -rf vendor/lineage
-    git clone https://github.com/bimuafaq/android_vendor_lineage vendor/lineage -b lineage-18.1 --depth=1
-
-    rm -rf frameworks/base
-    git clone https://github.com/bimuafaq/android_frameworks_base frameworks/base -b lineage-18.1 --depth=1
-    sed -i 's#\(<bool[^>]*name="config_cellBroadcastAppLinks"[^>]*>\)\s*true\s*\(</bool>\)#\1false\2#g' frameworks/base/core/res/res/values/config.xml
-    grep -n 'config_cellBroadcastAppLinks' frameworks/base/core/res/res/values/config.xml
-
-    rm -rf packages/apps/Settings
-    git clone https://github.com/bimuafaq/android_packages_apps_Settings packages/apps/Settings -b lineage-18.1 --depth=1
-
-    rm -rf packages/apps/Trebuchet
-    git clone https://github.com/rovars/android_packages_apps_Trebuchet packages/apps/Trebuchet -b wip --depth=1
-
-    rm -rf packages/apps/DeskClock
-    git clone https://github.com/rovars/android_packages_apps_DeskClock packages/apps/DeskClock -b exthm-11 --depth=1
-
-    rm -rf packages/apps/LineageParts
-    git clone https://github.com/bimuafaq/android_packages_apps_LineageParts packages/apps/LineageParts -b lineage-18.1 --depth=1
-
-    rm -rf frameworks/opt/telephony
-    git clone https://github.com/bimuafaq/android_frameworks_opt_telephony frameworks/opt/telephony -b lineage-18.1 --depth=1
-
-    patch -p1 < $PWD/xx/script/permissive.patch
-
-    source $PWD/xx/script/constify.sh
-
-    rm -rf kernel/realme/RMX2185
-    git clone https://github.com/rovars/kernel_realme_RMX2185 kernel/realme/RMX2185 --depth=5
-    cd kernel/realme/RMX2185
-    git revert --no-edit a435473e6a45d3b319e793f40fb4cf9c1c269568
-    cd -
+    #rm -rf kernel/realme/RMX2185
+    #git clone https://github.com/rovars/kernel_realme_RMX2185 kernel/realme/RMX2185 --depth=5
+    #cd kernel/realme/RMX2185
+    #git reset --hard HEAD~3
+    #cd -   
 }
 
 build_src() {
-    source build/envsetup.sh
-    rbe_env_setup
-    export USE_RBE=true
-    # ccache_env_setup
+    source "$PWD/build/envsetup.sh"
+    # source rovx --ccache
 
-    export KBUILD_BUILD_USER=nobody
-    export KBUILD_BUILD_HOST=android-build
-    export BUILD_USERNAME=nobody
-    export BUILD_HOSTNAME=android-build
-
-    export OWN_KEYS_DIR="$PWD/xx/keys"
+    export OWN_KEYS_DIR="$PWD/rox/keys"
     sudo ln -sf "$OWN_KEYS_DIR/releasekey.pk8" "$OWN_KEYS_DIR/testkey.pk8"
     sudo ln -sf "$OWN_KEYS_DIR/releasekey.x509.pem" "$OWN_KEYS_DIR/testkey.x509.pem"
 
-    lunch lineage_RMX2185-user
-    # source $PWD/xx/script/mmm.sh system || exit 1
-    
-    mka bacon -j90
+    export KBUILD_BUILD_USER="nobody"
+    export KBUILD_BUILD_HOST="android-build"
+    export BUILD_USERNAME="nobody"
+    export BUILD_HOSTNAME="android-build"
+
+    lunch lineage_RMX2185-userdebug
+    #source "$PWD/rox/script/mmm.sh" icons
+    #chmod +x "$PWD/rox/script/fix.sh"
+    #source "$PWD/rox/script/fix.sh" || exit 1
+    mka bacon
+    #mka selinux_policy
 }
 
-upload_src() {
-    local release_file=$(find out/target/product -name "*-RMX*.zip" -print -quit)
+upload_build() {
+    local release_file=$(find "$PWD/out/target/product/RMX2185" -maxdepth 1 -name "*-RMX*.zip" -print -quit)
     local release_name=$(basename "$release_file" .zip)
     local release_tag=$(date +%Y%m%d)
     local repo_releases="bimuafaq/releases"
-
-    UPLOAD_GH=false
-
-    if [[ -f "$release_file" ]]; then
+    local UPLOAD_GH=false
+    
+    if [[ -n "$release_file" && -f "$release_file" ]]; then
         if [[ "${UPLOAD_GH}" == "true" && -n "$GITHUB_TOKEN" ]]; then
-            echo "$GITHUB_TOKEN" > tokenpat.txt
-            gh auth login --with-token < tokenpat.txt
-            rm tokenpat.txt
-            tg_post "Uploading to GitHub Releases..."
-            gh release create "$release_tag" -t "$release_name" -R "$repo_releases" -F "xx/script/notes.txt" || true
+            echo "$GITHUB_TOKEN" > rox.txt
+            gh auth login --with-token < rox.txt
+            rovx --post "Uploading to GitHub Releases..."
+            gh release create "$release_tag" -t "$release_name" -R "$repo_releases" -F "$PWD/rox/script/notes.txt" || true
+
             if gh release upload "$release_tag" "$release_file" -R "$repo_releases" --clobber; then
-                tg_post "GitHub Release upload successful: <a href=\"https://github.com/$repo_releases/releases/tag/$release_tag\">$release_name</a>"
+                rovx --post "GitHub Release upload successful: <a href='https://github.com/$repo_releases/releases/tag/$release_tag'>$release_name</a>"
             else
-                tg_post "GitHub Release upload failed"
+                rovx --post "GitHub Release upload failed"
             fi
         fi
 
-        unzip -q xx/config.zip -d ~/.config
-        tg_post "Uploading build result to Telegram..."
-        if timeout 15m telegram-upload "$release_file" --to "$TG_CHAT_ID" --caption "$CIRRUS_COMMIT_MESSAGE"; then
-            tg_post "Telegram upload successful"
-        else
-            tg_post "telegram-upload failed"
-            return 1
-        fi
+        mkdir -p ~/.config
+        unzip -q "$PWD/rox/config.zip" -d ~/.config
+        rovx --post "Uploading build result to Telegram..."
+        timeout 15m telegram-upload "$release_file" --to "$TG_CHAT_ID" --caption "$CIRRUS_COMMIT_MESSAGE"
     else
-        tg_post "Build file not found"
-        return 0
+        rovx --post "Build file not found for upload"
+        exit 0
     fi
 }
 
-main "$@"
+case "$1" in
+    --sync) setup_src ;;
+    --build) build_src ;;
+    --upload) upload_build ;;
+    *) echo "Unknown: $1"; exit 1 ;;
+esac
