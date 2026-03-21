@@ -96,7 +96,6 @@ v8_symbol_level = 0
 use_remoteexec = true
 debuggable_apks = false
 dcheck_always_on = false
-strip_debug_info = true
 is_high_end_android = false
 treat_warnings_as_errors = true
 use_errorprone_java_compiler = false
