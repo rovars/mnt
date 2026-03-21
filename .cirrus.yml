@@ -1,9 +1,8 @@
 env:
-  gitconfigs: "ENCRYPTED[!e918d9400219b6f7d2588a0afd4fffd3df3735cf5db059e2733e4269c363811a818e686e7b04c2b4fd671580e393f20c!]"
-  credensial: "ENCRYPTED[!6f130d1ac4acaf8c4a50f4ce8c5a9cefe2ad5e2fd511e0d25c3ca5d15f6f15977184c846ce5cee54bb6019a060648fed!]"
   TG_TOKEN: "ENCRYPTED[!48df36a023301be77fca5928aee9d9aa41d168a17b49a1379dcdd2544d897abdd71244a71b29f810411fefc8404625d2!]"
   TG_CHAT_ID: "ENCRYPTED[!a12665bdcb530d0f6222ec4f353356c9819303c6a85209c78bd9c1f2d57b16912c9b96d60e567367846f2438f9f75967!]"
-  NINJA_HIGHMEM_NUM_JOBS: "1"
+  GIT_GITCONFIGS: "ENCRYPTED[!e918d9400219b6f7d2588a0afd4fffd3df3735cf5db059e2733e4269c363811a818e686e7b04c2b4fd671580e393f20c!]"
+  GIT_CREDENSIAL: "ENCRYPTED[!6f130d1ac4acaf8c4a50f4ce8c5a9cefe2ad5e2fd511e0d25c3ca5d15f6f15977184c846ce5cee54bb6019a060648fed!]"
 
 task:
   name: "Build Chromium CI"
@@ -15,8 +14,8 @@ task:
     greedy: true
 
   sync_script:
-    - echo "$credensial" > ~/.git-credentials
-    - echo "$gitconfigs" > ~/.gitconfig
+    - echo "$GIT_CREDENSIAL" > ~/.git-credentials
+    - echo "$GIT_GITCONFIGS" > ~/.gitconfig
     - rm -rf .git
     - rovx --start
     - ./build.sh --sync
