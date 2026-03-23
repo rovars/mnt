@@ -24,8 +24,8 @@ task:
     - git clone -q --depth=1 -b lineage-17.1 https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_arm_arm-linux-androideabi-4.9 /tmp/gcc32
     - echo "Cloning Clang"
     - git clone -q --depth=1 https://github.com/rovars/clang /tmp/clang
-    - echo "Extracting AnyKernel3"
-    - unzip -q anykernel.zip -d /tmp/anykernel
+    - git clone -q https://github.com/rovars/rom rm
+    - unzip -q rm/anykernel.zip -d /tmp/anykernel
 
   build_script:
     - echo "Starting Build"
