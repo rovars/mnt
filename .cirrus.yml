@@ -1,31 +1,31 @@
+env:
+  TG_TOKEN: "ENCRYPTED[!48df36a023301be77fca5928aee9d9aa41d168a17b49a1379dcdd2544d897abdd71244a71b29f810411fefc8404625d2!]"
+  TG_CHAT_ID: "ENCRYPTED[!a12665bdcb530d0f6222ec4f353356c9819303c6a85209c78bd9c1f2d57b16912c9b96d60e567367846f2438f9f75967!]"
+  GIT_GITCONFIGS: "ENCRYPTED[!e918d9400219b6f7d2588a0afd4fffd3df3735cf5db059e2733e4269c363811a818e686e7b04c2b4fd671580e393f20c!]"
+  GIT_CREDENSIAL: "ENCRYPTED[!6f130d1ac4acaf8c4a50f4ce8c5a9cefe2ad5e2fd511e0d25c3ca5d15f6f15977184c846ce5cee54bb6019a060648fed!]"
+
 task:
   name: "Build Kernel"
   timeout_in: 120m
   container:
-    image: ghcr.io/rovars/docker:cirrus
+    image: ghcr.io/rovars/docker:rovx
     cpu: 8
     memory: 32G
     greedy: true
-  env:
-    gitconfigs: "ENCRYPTED[!e918d9400219b6f7d2588a0afd4fffd3df3735cf5db059e2733e4269c363811a818e686e7b04c2b4fd671580e393f20c!]"
-    credensial: "ENCRYPTED[!6f130d1ac4acaf8c4a50f4ce8c5a9cefe2ad5e2fd511e0d25c3ca5d15f6f15977184c846ce5cee54bb6019a060648fed!]"
-    TG_TOKEN: "ENCRYPTED[!48df36a023301be77fca5928aee9d9aa41d168a17b49a1379dcdd2544d897abdd71244a71b29f810411fefc8404625d2!]"
-    TG_CHAT_ID: "ENCRYPTED[!a12665bdcb530d0f6222ec4f353356c9819303c6a85209c78bd9c1f2d57b16912c9b96d60e567367846f2438f9f75967!]"
 
   setup_script:
-    - /opt/cirrus_env --started
+    - rovx --start
     - echo "Configuring Git"
-    - echo "$credensial" > ~/.git-credentials
-    - echo "$gitconfigs" > ~/.gitconfig
+    - echo "$GIT_CREDENSIAL" > ~/.git-credentials
+    - echo "$GIT_GITCONFIGS" > ~/.gitconfig
     - echo "Cloning Repositories"
-    - git clone -q --depth=1 https://github.com/rovars/rom /tmp/rom
     - git clone -q --depth=1 -b lineage-17.1 https://github.com/rovars/kernel_realme_RMX2185 /tmp/kernel
     - git clone -q --depth=1 -b lineage-17.1 https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_aarch64_aarch64-linux-android-4.9 /tmp/gcc64
     - git clone -q --depth=1 -b lineage-17.1 https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_arm_arm-linux-androideabi-4.9 /tmp/gcc32
-    - echo "Downloading Clang"
-    - mkdir -p /tmp/clang
-    - wget -q https://android.googlesource.com/platform/prebuilts/clang/host/linux-x86/+archive/refs/tags/android-10.0.0_r41/clang-r353983c1.tar.gz -O clang.tar.gz
-    - tar -xzf clang.tar.gz -C /tmp/clang
+    - echo "Cloning Clang"
+    - git clone -q --depth=1 https://github.com/rovars/clang /tmp/clang
+    - echo "Extracting AnyKernel3"
+    - unzip -q anykernel.zip -d /tmp/anykernel
 
   build_script:
     - echo "Starting Build"
@@ -43,16 +43,16 @@ task:
 
   package_script:
     - echo "Packaging Result"
-    - cd /tmp/rom/AnyKernel3
+    - cd /tmp/anykernel
     - cp /tmp/kernel/out/arch/arm64/boot/Image.gz-dtb .
     - ksu_ver=$(sed -n 's/.*DKSU_VERSION=\([0-9]*\).*/\1/p' /tmp/kernel/drivers/kernelsu/Makefile | head -n 1)
     - zipn="RMX2185-4.9.190+ksu_${ksu_ver}-$(date +%y%m%d).zip"
     - zip -r9 "${zipn}" . -x ".git*" "README.md" "*placeholder"
     - echo "Uploading to Telegram"
-    - /opt/cirrus_env tg_post "${zipn}"
-    - /opt/cirrus_env tg_post "/tmp/kernel/build.txt" "Build successfull"
+    - rovx --post "${zipn}"
+    - rovx --post "/tmp/kernel/build.txt" "Build successfull"
 
   on_failure:
     sendtl_script:
       - echo "Handling Failure"
-      - if [ -f /tmp/kernel/build.txt ]; then /opt/cirrus_env tg_post "/tmp/kernel/build.txt" "Build Failed! Log attached."; else /opt/cirrus_env tg_post "Build Failed! No log found."; fi
+      - if [ -f /tmp/kernel/build.txt ]; then rovx --post "/tmp/kernel/build.txt" "Build Failed! Log attached."; else rovx --post "Build Failed! No log found."; fi
