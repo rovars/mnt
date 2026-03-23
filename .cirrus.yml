@@ -19,13 +19,13 @@ task:
     - echo "$GIT_CREDENSIAL" > ~/.git-credentials
     - echo "$GIT_GITCONFIGS" > ~/.gitconfig
     - echo "Cloning Repositories"
-    - git clone -q --depth=1 -b lineage-17.1 https://github.com/rovars/kernel_realme_RMX2185 /tmp/kernel
+    - git clone -q --depth=1 https://github.com/rovars/kernel_realme_RMX2185 /tmp/kernel
     - git clone -q --depth=1 -b lineage-17.1 https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_aarch64_aarch64-linux-android-4.9 /tmp/gcc64
     - git clone -q --depth=1 -b lineage-17.1 https://github.com/LineageOS/android_prebuilts_gcc_linux-x86_arm_arm-linux-androideabi-4.9 /tmp/gcc32
     - echo "Cloning Clang"
     - git clone -q --depth=1 https://github.com/rovars/clang /tmp/clang
     - git clone -q https://github.com/rovars/rom rm
-    - unzip -q rm/anykernel.zip -d /tmp/anykernel
+    - unzip -q rm/anykernel.zip -d /tmp/rmx
 
   build_script:
     - echo "Starting Build"
@@ -43,7 +43,7 @@ task:
 
   package_script:
     - echo "Packaging Result"
-    - cd /tmp/anykernel
+    - cd /tmp/rmx/AnyKernel3
     - cp /tmp/kernel/out/arch/arm64/boot/Image.gz-dtb .
     - ksu_ver=$(sed -n 's/.*DKSU_VERSION=\([0-9]*\).*/\1/p' /tmp/kernel/drivers/kernelsu/Makefile | head -n 1)
     - zipn="RMX2185-4.9.190+ksu_${ksu_ver}-$(date +%y%m%d).zip"
