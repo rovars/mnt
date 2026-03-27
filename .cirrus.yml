@@ -21,7 +21,6 @@ task:
     - ./build.sh --sync
   
   build_script: ./build.sh --build
-  build_siso_script: siso ninja -C out/Default chrome_public_apk
   upload_script: ./build.sh --upload
 
   on_failure:
