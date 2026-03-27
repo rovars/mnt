@@ -98,9 +98,7 @@ is_high_end_android = false
 EOF
 
     gn gen out/Default
-    mkdir -p out
-    timeout 20m siso ninja --offline -C out/Default chrome_public_apk
-    siso ninja -C out/Default chrome_public_apk
+    timeout 30m siso ninja --offline -C out/Default chrome_public_apk || true
 }
 
 upload_build() {
