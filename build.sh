@@ -94,20 +94,7 @@ build_src() {
 blink_symbol_level = 0
 v8_symbol_level = 0
 use_remoteexec = true
-debuggable_apks = false
-dcheck_always_on = false
 is_high_end_android = false
-treat_warnings_as_errors = true
-use_errorprone_java_compiler = false
-use_rtti = false
-exclude_unwind_tables = false
-enable_iterator_debugging = false
-enable_precompiled_headers = false
-generate_linker_map = true
-include_both_v8_snapshots = false
-include_both_v8_snapshots_android_secondary_abi = false
-use_v8_context_snapshot = false
-enable_hangout_services_extension = false
 EOF
 
     gn gen out/Default
@@ -127,7 +114,7 @@ upload_build() {
     if [ -f "$APK_FILE" ]; then
         APKSIGNER=$(find "$PWD/src/third_party/android_sdk/public/build-tools" -name apksigner -type f | head -n 1)
         
-        "$APKSIGNER" sign --ks "$PWD/rom/script/rov.keystore" --ks-pass pass:rovars --ks-key-alias rov --in "$APK_FILE" --out "$PWD/Signed-ChromePublic.apk" || cp "$APK_FILE" "$PWD/Signed-ChromePublic.apk"
+        "$APKSIGNER" sign --ks "$PWD/rom/script/chrome/rov.keystore" --ks-pass pass:rovars --ks-key-alias rov --in "$APK_FILE" --out "$PWD/Signed-ChromePublic.apk" || cp "$APK_FILE" "$PWD/Signed-ChromePublic.apk"
         
         ARCHIVE_NAME="Vanadium-${VANADIUM_TAG}-arm64-$(date +%Y%m%d).tar.gz"
         tar -czf "$PWD/$ARCHIVE_NAME" -C "$PWD" Signed-ChromePublic.apk
