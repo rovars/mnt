@@ -73,6 +73,7 @@ EOF
 }
 
 build_src() {
+    cd "$PWD"
     export PATH="$PWD/depot_tools:$PATH"
     export SISO_CREDENTIAL_HELPER="$PWD/siso-credential-helper.sh"
 
@@ -82,21 +83,21 @@ build_src() {
         CERT_DIGEST="c6adb8b83c6d4c17d292afde56fd488a51d316ff8f2c11c5410223bff8a7dbb3"
     fi
 
-    cd src
-    mkdir -p out/Default  
-    cp ../Vanadium/args.gn out/Default/args.gn
+    mkdir -p src/out/Default
+    cp "$PWD/Vanadium/args.gn" src/out/Default/args.gn
 
-    sed -i "s/trichrome_certdigest = .*/trichrome_certdigest = \"$CERT_DIGEST\"/" out/Default/args.gn
-    sed -i "s/config_apk_certdigest = .*/config_apk_certdigest = \"$CERT_DIGEST\"/" out/Default/args.gn
-    sed -i "s/symbol_level = .*/symbol_level = 0/" out/Default/args.gn
+    sed -i "s/trichrome_certdigest = .*/trichrome_certdigest = \"$CERT_DIGEST\"/" src/out/Default/args.gn
+    sed -i "s/config_apk_certdigest = .*/config_apk_certdigest = \"$CERT_DIGEST\"/" src/out/Default/args.gn
+    sed -i "s/symbol_level = .*/symbol_level = 0/" src/out/Default/args.gn
     
-    cat <<EOF >> out/Default/args.gn
+    cat <<EOF >> src/out/Default/args.gn
 blink_symbol_level = 0
 v8_symbol_level = 0
 use_remoteexec = true
 is_high_end_android = false
 EOF
 
+    cd "$PWD/src"
     gn gen out/Default
     #timeout 30m siso ninja --offline -C out/Default chrome_public_apk || true
     #sleep 1m
