@@ -4,8 +4,7 @@ setup_sync() {
     git clone -q https://chromium.googlesource.com/chromium/tools/depot_tools.git "$PWD/depot_tools"
     export PATH="$PWD/depot_tools:$PATH"
 
-    #LATEST_TAG=$(curl -sL https://api.github.com/repos/GrapheneOS/Vanadium/releases/latest | jq -r .tag_name)
-    LATEST_TAG=143.0.7499.192.0
+    LATEST_TAG=146.0.7680.164.0
     CHROMIUM_VERSION=${LATEST_TAG%.*}
     echo "$LATEST_TAG" > "$PWD/vanadium_tag.txt"
 
@@ -74,32 +73,33 @@ EOF
 }
 
 build_src() {
-    WORKDIR="$(cd -P "$PWD" && pwd)"
-    export PATH="$WORKDIR/depot_tools:$PATH"
-    export SISO_CREDENTIAL_HELPER="$WORKDIR/siso-credential-helper.sh"
+    export PATH="$PWD/depot_tools:$PATH"
+    export SISO_CREDENTIAL_HELPER="$PWD/siso-credential-helper.sh"
 
-    if [ -f "$WORKDIR/rom/script/rov.keystore" ]; then
-        CERT_DIGEST=$(keytool -export-cert -alias rov -keystore "$WORKDIR/rom/script/rov.keystore" -storepass rovars | sha256sum | awk '{print $1}')
+    if [ -f "$PWD/rom/script/chrome/rov.keystore" ]; then
+        CERT_DIGEST=$(keytool -export-cert -alias rov -keystore "$PWD/rom/script/chrome/rov.keystore" -storepass rovars | sha256sum | awk '{print $1}')
     else
         CERT_DIGEST="c6adb8b83c6d4c17d292afde56fd488a51d316ff8f2c11c5410223bff8a7dbb3"
     fi
 
-    mkdir -p src/out/Default
-    cp "$WORKDIR/Vanadium/args.gn" src/out/Default/args.gn
+    cd src
+    mkdir -p out/Default  
+    cp ../Vanadium/args.gn out/Default/args.gn
 
-    sed -i "s/trichrome_certdigest = .*/trichrome_certdigest = \"$CERT_DIGEST\"/" src/out/Default/args.gn
-    sed -i "s/config_apk_certdigest = .*/config_apk_certdigest = \"$CERT_DIGEST\"/" src/out/Default/args.gn
-    sed -i "s/symbol_level = .*/symbol_level = 0/" src/out/Default/args.gn
+    sed -i "s/trichrome_certdigest = .*/trichrome_certdigest = \"$CERT_DIGEST\"/" out/Default/args.gn
+    sed -i "s/config_apk_certdigest = .*/config_apk_certdigest = \"$CERT_DIGEST\"/" out/Default/args.gn
+    sed -i "s/symbol_level = .*/symbol_level = 0/" out/Default/args.gn
     
-    cat <<EOF >> src/out/Default/args.gn
+    cat <<EOF >> out/Default/args.gn
 blink_symbol_level = 0
 v8_symbol_level = 0
 use_remoteexec = true
 is_high_end_android = false
 EOF
 
-    cd "$WORKDIR/src"
     gn gen out/Default
+    mkdir -p out
+    timeout 20m siso ninja --offline -C out/Default chrome_public_apk
     siso ninja -C out/Default chrome_public_apk
 }
 
