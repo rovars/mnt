@@ -18,10 +18,10 @@ task:
     - echo "$GIT_GITCONFIGS" > ~/.gitconfig
     - rm -rf .git
     - rovx --start
-    - ./build.sh --sync
+    - sudo ./build.sh --sync
   
-  build_script: ./build.sh --build
-  upload_script: ./build.sh --upload
+  build_script: sudo ./build.sh --build
+  upload_script: sudo ./build.sh --upload
 
   on_failure:
     notif_error_script:

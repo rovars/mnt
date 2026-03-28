@@ -73,18 +73,18 @@ EOF
 }
 
 build_src() {
-    cd "$PWD"
-    export PATH="$PWD/depot_tools:$PATH"
-    export SISO_CREDENTIAL_HELPER="$PWD/siso-credential-helper.sh"
+    WORKDIR="$(cd -P "$PWD" && pwd)"
+    export PATH="$WORKDIR/depot_tools:$PATH"
+    export SISO_CREDENTIAL_HELPER="$WORKDIR/siso-credential-helper.sh"
 
-    if [ -f "$PWD/rom/script/rov.keystore" ]; then
-        CERT_DIGEST=$(keytool -export-cert -alias rov -keystore "$PWD/rom/script/rov.keystore" -storepass rovars | sha256sum | awk '{print $1}')
+    if [ -f "$WORKDIR/rom/script/rov.keystore" ]; then
+        CERT_DIGEST=$(keytool -export-cert -alias rov -keystore "$WORKDIR/rom/script/rov.keystore" -storepass rovars | sha256sum | awk '{print $1}')
     else
         CERT_DIGEST="c6adb8b83c6d4c17d292afde56fd488a51d316ff8f2c11c5410223bff8a7dbb3"
     fi
 
     mkdir -p src/out/Default
-    cp "$PWD/Vanadium/args.gn" src/out/Default/args.gn
+    cp "$WORKDIR/Vanadium/args.gn" src/out/Default/args.gn
 
     sed -i "s/trichrome_certdigest = .*/trichrome_certdigest = \"$CERT_DIGEST\"/" src/out/Default/args.gn
     sed -i "s/config_apk_certdigest = .*/config_apk_certdigest = \"$CERT_DIGEST\"/" src/out/Default/args.gn
@@ -97,10 +97,8 @@ use_remoteexec = true
 is_high_end_android = false
 EOF
 
-    cd "$PWD/src"
+    cd "$WORKDIR/src"
     gn gen out/Default
-    #timeout 30m siso ninja --offline -C out/Default chrome_public_apk || true
-    #sleep 1m
     siso ninja -C out/Default chrome_public_apk
 }
 
