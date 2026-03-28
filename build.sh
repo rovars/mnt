@@ -4,7 +4,8 @@ setup_sync() {
     git clone -q https://chromium.googlesource.com/chromium/tools/depot_tools.git "$PWD/depot_tools"
     export PATH="$PWD/depot_tools:$PATH"
 
-    LATEST_TAG=$(curl -sL https://api.github.com/repos/GrapheneOS/Vanadium/releases/latest | jq -r .tag_name)
+    #LATEST_TAG=$(curl -sL https://api.github.com/repos/GrapheneOS/Vanadium/releases/latest | jq -r .tag_name)
+    LATEST_TAG=143.0.7499.192.0
     CHROMIUM_VERSION=${LATEST_TAG%.*}
     echo "$LATEST_TAG" > "$PWD/vanadium_tag.txt"
 
