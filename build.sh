@@ -98,8 +98,8 @@ is_high_end_android = false
 EOF
 
     gn gen out/Default
-    timeout 30m siso ninja --offline -C out/Default chrome_public_apk || true
-    sleep 1m
+    #timeout 30m siso ninja --offline -C out/Default chrome_public_apk || true
+    #sleep 1m
     siso ninja -C out/Default chrome_public_apk
 }
 
